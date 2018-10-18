@@ -11,7 +11,7 @@
         android:id="@+id/sets_til_wifi_ssid"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/sets_vert_spacing">
+        android:layout_marginBottom="@dimen/sets_rows_spacing">
 
         <AutoCompleteTextView
             android:id="@+id/sets_actv_wifi_ssid"
@@ -28,14 +28,14 @@
         android:id="@+id/sets_cb_bulb_static"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/sets_vert_spacing"
+        android:layout_marginBottom="@dimen/sets_rows_spacing"
         android:text="@string/sets_static_option" />
 
     <TextView
         android:id="@+id/sets_tv_bulb_dynamic_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/sets_vert_spacing"
+        android:layout_marginBottom="@dimen/sets_rows_spacing"
         android:text="@string/sets_info_dynamic" />
 
 
@@ -44,7 +44,7 @@
         android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/sets_vert_spacing">
+        android:layout_marginBottom="@dimen/sets_rows_spacing">
 
         <AutoCompleteTextView
             android:id="@+id/sets_actv_bulb_address"

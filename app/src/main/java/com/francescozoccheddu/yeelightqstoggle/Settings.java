@@ -27,7 +27,7 @@ public class Settings {
     }
 
     public void setWiFiSSID(String ssid) {
-        preferencesEditor.putString("wifi_ssid", ssid);
+        preferencesEditor.putString("wifi_ssid", ssid != null && ssid.isEmpty() ? null : ssid);
     }
 
     public void setDynamicBulb() {

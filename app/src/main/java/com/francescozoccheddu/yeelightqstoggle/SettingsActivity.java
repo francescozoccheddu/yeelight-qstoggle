@@ -167,21 +167,10 @@ public class SettingsActivity extends AppCompatActivity {
         WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         if (wifiManager != null) {
             List<WifiConfiguration> wifis = wifiManager.getConfiguredNetworks();
-            String[] ssids = wifis.stream().map(SettingsActivity::getSSID).toArray(String[]::new);
+            String[] ssids = wifis.stream().map(SSIDUtils::getSSID).toArray(String[]::new);
             return new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, ssids);
         }
         return null;
-    }
-
-    private static String getSSID(String rawSSID) {
-        if (rawSSID != null && rawSSID.startsWith("\"") && rawSSID.endsWith("\"")) {
-            return rawSSID.substring(1, rawSSID.length() - 1);
-        }
-        return null;
-    }
-
-    private static String getSSID(WifiConfiguration wifi) {
-        return getSSID(wifi.SSID);
     }
 
     private static boolean isValidAddress(String address) {
@@ -229,6 +218,10 @@ public class SettingsActivity extends AppCompatActivity {
 
         settings.setWiFiSSID(actvWiFiSSID.getText().toString());
 
-        settings.saveAsync();
+        settings.save();
+
+        Log.d("SettingsActivity", "Settings saved");
+
+        ToggleTileService.update(this);
     }
 }
