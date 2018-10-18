@@ -15,6 +15,11 @@ public class ToggleTileService extends TileService {
         HOME, NOT_HOME, NOT_SET
     }
 
+    @Override
+    public void onTileAdded() {
+        updateState();
+    }
+
     private State state = State.NOT_HOME;
 
     private boolean toggling = false;
@@ -97,7 +102,7 @@ public class ToggleTileService extends TileService {
                 break;
             case NOT_SET:
                 Log.d("ToggleTileService", "Redirected to settings activity");
-                startActivity(new Intent(this, SettingsActivity.class));
+                startActivityAndCollapse(new Intent(this, SettingsActivity.class));
                 break;
         }
     }
@@ -107,7 +112,7 @@ public class ToggleTileService extends TileService {
         if (homeSSID == null) {
             state = State.NOT_SET;
         } else {
-            Log.d("ToggleTileService", "SSID: " + homeSSID);
+            Log.d("ToggleTileService", "SSID '" + homeSSID + "'");
             switch (WiFiReceiver.getHomeState(this, homeSSID)) {
                 case HOME:
                     state = State.HOME;
