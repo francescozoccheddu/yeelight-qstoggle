@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">YeelightQSToggle</string>
     <string name="tile_label">Toggle Bulb</string>
+    <string name="sets_bulb_address">Bulb address</string>
+    <string name="sets_static">Use static address</string>
+    <string name="sets_info_dynamic">Automatic discovery will be used</string>
+    <string name="sets_wifi_ssid">WiFi network SSID</string>
+    <string name="sets_try">Toggle now!</string>
 </resources>

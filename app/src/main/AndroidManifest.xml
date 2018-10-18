@@ -11,7 +11,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material">
+        android:theme="@style/Theme.AppCompat">
 
         <activity android:name=".SettingsActivity">
             <intent-filter>
@@ -39,6 +39,7 @@
             <intent-filter>
                 <action android:name="android.net.wifi.STATE_CHANGE"/>
             </intent-filter>
+
         </receiver>
 
     </application>

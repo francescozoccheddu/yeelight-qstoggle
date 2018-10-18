@@ -137,6 +137,38 @@ public final class Bulb {
                 && this.port == other.port;
     }
 
+    @Override
+    public int hashCode() {
+        if (hasAddress) {
+            return address.hashCode() + port;
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public String toString() {
+        if (hasAddress) {
+            return address.getHostAddress() + ":" + port;
+        }
+        else {
+            return "null";
+        }
+    }
+
+    public URI toUri() {
+        if (hasAddress) {
+            try {
+                return new URI("my://" + toString());
+            } catch (URISyntaxException e) {
+                throw new IllegalStateException("Bad address");
+            }
+        }
+        else {
+            return null;
+        }
+    }
+
     public static class Discoverer {
 
         private static final int MSG_FOUND = 0;
