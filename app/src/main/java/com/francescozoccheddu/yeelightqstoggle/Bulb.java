@@ -20,70 +20,39 @@ public final class Bulb {
 
     public interface ToggleCommandListener {
         void onCommandSent();
+
         void onSocketException(Exception exception);
     }
 
-    private InetAddress address;
-    private int port;
-    private boolean hasAddress = false;
+    private final InetAddress inet;
+    private final int port;
 
     private static final String CMD_TOGGLE_TCP_MESSAGE = "{\"id\":0,\"method\":\"toggle\",\"params\":[]}\r\n";
 
-    public static void removeFromPreferences(SharedPreferences.Editor preferences) {
-        preferences.remove("address");
-        preferences.remove("port");
-    }
-
-    public void saveToPreferences(SharedPreferences.Editor preferences) {
-        if (hasAddress) {
-            preferences.putString("address", address.getHostAddress());
-            preferences.putInt("port", port);
-        }
-        else {
-            removeFromPreferences(preferences);
+    public static Bulb fromAddress(String address) {
+        try {
+            final URI uri = new URI("my://" + address);
+            return new Bulb(InetAddress.getByName(uri.getHost()), uri.getPort());
+        } catch (Exception e) {
+            return null;
         }
     }
 
-    public void restoreFromPreferences(SharedPreferences preferences) {
-        hasAddress = false;
-        if (preferences.contains("address") && preferences.contains("port")) {
-            try {
-                this.address = InetAddress.getByName(preferences.getString("address",null));
-            } catch (UnknownHostException e) {
-                throw new RuntimeException("Bad address in preferences");
-            }
-            this.port = preferences.getInt("port", 0);
-            if (port < 1 || port > 65535) {
-                throw new RuntimeException("Bad port in preferences");
-            }
-            hasAddress = true;
-        }
-    }
-
-    public void setAddress(InetAddress address, int port) {
-        if (address == null) {
+    public Bulb(InetAddress inet, int port) {
+        if (inet == null) {
             throw new IllegalArgumentException("Null address");
         }
         if (port < 1 || port > 65535) {
             throw new IllegalArgumentException("Invalid port");
         }
-        this.address = address;
+        this.inet = inet;
         this.port = port;
-        this.hasAddress = true;
-    }
-
-    public void clearAddress() {
-        this.hasAddress = false;
     }
 
     private static final int CMD_TOGGLE_MSG_SENT = 1;
     private static final int CMD_TOGGLE_MSG_EXCEPTION = 2;
 
     public void sendToggleCommand(ToggleCommandListener commandListener) {
-        if (!hasAddress()) {
-            throw new IllegalStateException("No address set");
-        }
-
         final Handler handler = commandListener == null ? null : new Handler(Looper.myLooper()) {
 
             @Override
@@ -98,11 +67,10 @@ public final class Bulb {
                         break;
                 }
             }
-
         };
 
         final Runnable runnable = () -> {
-            try (Socket socket = new Socket(address, port)) {
+            try (Socket socket = new Socket(inet, port)) {
                 socket.setKeepAlive(true);
                 BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
                 bufferedOutputStream.write(CMD_TOGGLE_TCP_MESSAGE.getBytes());
@@ -123,48 +91,33 @@ public final class Bulb {
         new Thread(runnable).start();
     }
 
-    public boolean hasAddress() {
-        return this.hasAddress;
-    }
-
     @Override
     public boolean equals(Object obj) {
         return obj instanceof Bulb && equals((Bulb) obj);
     }
 
     public boolean equals(Bulb other) {
-        return (this.address == other.address || (this.address != null && this.address.equals(other.address)))
-                && this.port == other.port;
+        return other != null && inet.equals(other.inet) && port == other.port;
     }
 
     @Override
     public int hashCode() {
-        if (hasAddress) {
-            return address.hashCode() + port;
-        } else {
-            return 0;
-        }
+        return inet.hashCode() + port;
+    }
+
+    public String getAddress() {
+        return inet.getHostAddress() + ":" + port;
     }
 
     @Override
     public String toString() {
-        if (hasAddress) {
-            return address.getHostAddress() + ":" + port;
-        }
-        else {
-            return "null";
-        }
+        return getAddress();
     }
 
     public URI toUri() {
-        if (hasAddress) {
-            try {
-                return new URI("my://" + toString());
-            } catch (URISyntaxException e) {
-                throw new IllegalStateException("Bad address");
-            }
-        }
-        else {
+        try {
+            return new URI("my://" + getAddress());
+        } catch (URISyntaxException e) {
             return null;
         }
     }
@@ -199,7 +152,7 @@ public final class Bulb {
                     DatagramPacket dpSend = new DatagramPacket(UDP_REQUEST_MESSAGE.getBytes(), UDP_REQUEST_MESSAGE.getBytes().length, InetAddress.getByName(UDP_HOST), UDP_PORT);
                     socket.send(dpSend);
                     byte[] buffer = new byte[1024];
-                    DatagramPacket dpRecv = new DatagramPacket(buffer,buffer.length);
+                    DatagramPacket dpRecv = new DatagramPacket(buffer, buffer.length);
                     while (!Thread.interrupted()) {
                         socket.receive(dpRecv);
                         String message = new String(dpRecv.getData());
@@ -212,11 +165,9 @@ public final class Bulb {
                         }
                     }
                     handler.sendEmptyMessage(MSG_INTERRUPTED);
-                }
-                catch (SocketTimeoutException e) {
+                } catch (SocketTimeoutException e) {
                     handler.sendEmptyMessage(MSG_SOCKET_TIMEOUT);
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     final Message msg = new Message();
                     msg.what = MSG_EXCEPTION;
                     msg.obj = e;
@@ -224,14 +175,14 @@ public final class Bulb {
                 }
             };
 
-            this.thread = new Thread(runnable);
-            this.thread.start();
+            thread = new Thread(runnable);
+            thread.start();
 
             {
                 final Message msg = new Message();
-                msg.obj = this.thread;
+                msg.obj = thread;
                 msg.what = MSG_STOPME;
-                handler.sendMessageDelayed(msg,timeout);
+                handler.sendMessageDelayed(msg, timeout);
             }
         }
 
@@ -240,7 +191,7 @@ public final class Bulb {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                switch(msg.what) {
+                switch (msg.what) {
                     case MSG_FOUND:
                         onDiscover((Bulb) msg.obj);
                         break;
@@ -262,13 +213,17 @@ public final class Bulb {
         };
         private final Thread thread;
 
-        public void onDiscover(Bulb bulb) { }
+        public void onDiscover(Bulb bulb) {
+        }
 
-        public void onSocketTimeout() { }
+        public void onSocketTimeout() {
+        }
 
-        public void onInterrupted() { }
+        public void onInterrupted() {
+        }
 
-        public void onException(Exception exception) { }
+        public void onException(Exception exception) {
+        }
 
         public final void stopSearch() {
             if (isSearching()) {
@@ -288,13 +243,12 @@ public final class Bulb {
                     String temp = message.substring(fieldIndex + locationFieldHeader.length());
                     final int fieldEndIndex = temp.indexOf("\r\n");
                     if (fieldEndIndex != -1) {
-                        final String location = temp.substring(0,fieldEndIndex);
+                        final String location = temp.substring(0, fieldEndIndex);
                         try {
                             final URI uri = new URI("my://" + location);
-                            final Bulb bulb = new Bulb();
-                            bulb.setAddress(InetAddress.getByName(uri.getHost()), uri.getPort());
-                            return bulb;
-                        } catch (URISyntaxException | UnknownHostException e) { }
+                            return new Bulb(InetAddress.getByName(uri.getHost()), uri.getPort());
+                        } catch (URISyntaxException | UnknownHostException e) {
+                        }
                     }
                 }
             }

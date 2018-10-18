@@ -1,9 +1,11 @@
 <resources>
-    <string name="app_name">YeelightQSToggle</string>
+    <string name="app_name">Yeelight Quick Settings Toggle</string>
     <string name="tile_label">Toggle Bulb</string>
-    <string name="sets_bulb_address">Bulb address</string>
-    <string name="sets_static">Use static address</string>
+    <string name="sets_bulb_address_hint">Bulb address</string>
+    <string name="sets_static_option">Use static address</string>
     <string name="sets_info_dynamic">Automatic discovery will be used</string>
-    <string name="sets_wifi_ssid">WiFi network SSID</string>
-    <string name="sets_try">Toggle now!</string>
+    <string name="sets_wifi_ssid_hint">WiFi network SSID</string>
+    <string name="sets_bulb_address_error_empty">Address cannot be empty</string>
+    <string name="sets_bulb_address_error_invalid">Invalid address</string>
+    <string name="sets_wifi_ssid_error_empty">SSID cannot be empty</string>
 </resources>
