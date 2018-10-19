@@ -169,6 +169,7 @@ public final class Bulb {
                         }
                     }
                 } catch (Exception e) {
+                    socket.close();
                     handler.sendEmptyMessage(MSG_EXCEPTION);
                 }
             };

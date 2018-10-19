@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Yeelight Quick Settings Toggle</string>
-    <string name="tile_label_ready">Toggle Bulb</string>
-    <string name="tile_label_pending">Toggling…</string>
-    <string name="tile_label_not_home">Disconnected</string>
-    <string name="tile_label_not_set">Bulb Setup</string>
+    <string name="tile_label_connected">Toggle Bulb</string>
+    <string name="tile_label_toggling">Toggling…</string>
+    <string name="tile_label_disconnected">Disconnected</string>
     <string name="sets_bulb_address_hint">Bulb address</string>
-    <string name="sets_static_option">Use static address</string>
-    <string name="sets_info_dynamic">Automatic discovery will be used</string>
+    <string name="sets_static_bulb">Use static bulb address</string>
     <string name="sets_wifi_ssid_hint">WiFi network SSID</string>
     <string name="sets_bulb_address_error_empty">Address cannot be empty</string>
     <string name="sets_bulb_address_error_invalid">Invalid address</string>
     <string name="sets_wifi_ssid_error_empty">SSID cannot be empty</string>
-    <string name="tile_toast_not_home">Not connected to \'%s\'</string>
     <string name="tile_toast_already_toggling">Command pending</string>
     <string name="tile_toast_toggle_failed">Toggle failed</string>
     <string name="tile_toast_discovery_failed">Bulb discovery failed</string>
     <string name="tile_label">Toggle Bulb</string>
+    <string name="sets_static_wifi">Enable only when connected to a specific network</string>
 </resources>

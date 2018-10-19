@@ -8,46 +8,95 @@ public class Settings {
     public static final String DEFAULT_NAME = "Settings";
 
     private final SharedPreferences preferences;
-    private final SharedPreferences.Editor preferencesEditor;
+
+    public class Editor {
+
+        private final SharedPreferences.Editor editor;
+
+        private Editor() {
+            editor = preferences.edit();
+        }
+
+        public void apply() {
+            editor.commit();
+        }
+
+        public void applyAsync() {
+            editor.apply();
+        }
+
+        public void setBulbAddress(String address) {
+            if (address == null) {
+                address = "";
+            }
+            editor.putString("bulb_address", address);
+        }
+
+        public void setWiFiSSID(String ssid) {
+            if (ssid == null) {
+                ssid = "";
+            }
+            editor.putString("wifi_ssid", ssid);
+        }
+
+        public void setStaticBulb(boolean staticBulb) {
+            editor.putBoolean("bulb_static", staticBulb);
+        }
+
+        public void setStaticWiFi(boolean staticWiFi) {
+            editor.putBoolean("wifi_static", staticWiFi);
+        }
+
+    }
+
+    public static Settings getGlobalSettings(Context context) {
+        return new Settings(context, DEFAULT_NAME);
+    }
 
     public Settings(Context context, String name) {
         preferences = context.getSharedPreferences(name, Context.MODE_PRIVATE);
-        this.preferencesEditor = preferences.edit();
     }
 
-    public Bulb getStaticBulb() {
-        if (preferences.contains("bulb_address")) {
-            return Bulb.fromAddress(preferences.getString("bulb_address", null));
+    public Editor edit() {
+        return new Editor();
+    }
+
+    public String getBulbAddress() {
+        if (isBulbStatic()) {
+            final String address = preferences.getString("bulb_address", null);
+            if (address == null) {
+                preferences.edit().clear().apply();
+                throw new IllegalStateException("Bad settings state");
+            }
+            else {
+                return address;
+            }
+        } else {
+            return null;
         }
-        return null;
     }
 
     public String getWiFiSSID() {
-        return preferences.getString("wifi_ssid", null);
-    }
-
-    public void setWiFiSSID(String ssid) {
-        if (ssid == null || ssid.isEmpty()) {
-            preferencesEditor.remove("wifi_ssid");
+        if (isWiFiStatic()) {
+            final String ssid = preferences.getString("wifi_ssid", null);
+            if (ssid == null) {
+                preferences.edit().clear().apply();
+                throw new IllegalStateException("Bad settings state");
+            }
+            else {
+                return ssid;
+            }
         } else {
-            preferencesEditor.putString("wifi_ssid", ssid);
+            return null;
         }
     }
 
-    public void setDynamicBulb() {
-        preferencesEditor.remove("bulb_address");
+    public boolean isBulbStatic() {
+        return preferences.getBoolean("bulb_static", false);
     }
 
-    public void setStaticBulb(Bulb bulb) {
-        preferencesEditor.putString("bulb_address", bulb.getAddress());
-    }
-
-    public void save() {
-        preferencesEditor.commit();
-    }
-
-    public void saveAsync() {
-        preferencesEditor.apply();
+    public boolean isWiFiStatic() {
+        return preferences.getBoolean("wifi_static", false);
     }
 
 }

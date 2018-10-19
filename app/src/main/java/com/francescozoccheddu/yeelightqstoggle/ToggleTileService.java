@@ -2,22 +2,14 @@ package com.francescozoccheddu.yeelightqstoggle;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.drawable.Icon;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.util.HashSet;
-
 public class ToggleTileService extends TileService {
 
-    private enum State {
-        HOME, NOT_HOME, NOT_SET
-    }
-
-    private State state = State.NOT_HOME;
-
+    private boolean connected = false;
     private boolean toggling = false;
 
     private final Bulb.ToggleCommandListener toggleCommandListener = new Bulb.ToggleCommandListener() {
@@ -42,21 +34,15 @@ public class ToggleTileService extends TileService {
         if (tile != null) {
             if (toggling) {
                 tile.setState(Tile.STATE_UNAVAILABLE);
-                tile.setLabel(getString(R.string.tile_label_pending));
+                tile.setLabel(getString(R.string.tile_label_toggling));
             } else {
-                switch (state) {
-                    case HOME:
-                        tile.setState(Tile.STATE_ACTIVE);
-                        tile.setLabel(getString(R.string.tile_label_ready));
-                        break;
-                    case NOT_HOME:
-                        tile.setState(Tile.STATE_UNAVAILABLE);
-                        tile.setLabel(getString(R.string.tile_label_not_home));
-                        break;
-                    case NOT_SET:
-                        tile.setState(Tile.STATE_INACTIVE);
-                        tile.setLabel(getString(R.string.tile_label_not_set));
-                        break;
+                if (connected) {
+                    tile.setState(Tile.STATE_ACTIVE);
+                    tile.setLabel(getString(R.string.tile_label_connected));
+                }
+                else {
+                    tile.setState(Tile.STATE_UNAVAILABLE);
+                    tile.setLabel(getString(R.string.tile_label_disconnected));
                 }
             }
             tile.updateTile();
@@ -67,8 +53,12 @@ public class ToggleTileService extends TileService {
         if (!toggling) {
             toggling = true;
             updateIcon();
-            final Bulb bulb = new Settings(this, Settings.DEFAULT_NAME).getStaticBulb();
-            if (bulb != null) {
+            Settings settings = Settings.getGlobalSettings(this);
+            if (settings.isBulbStatic()) {
+                final Bulb bulb = Bulb.fromAddress(settings.getBulbAddress());
+                if (bulb == null) {
+                    throw new RuntimeException("Bad bulb address '" + settings.getBulbAddress() + "'");
+                }
                 Log.d("ToggleTileService", "Sending toggle command to static bulb '" + bulb.getAddress() + "'");
                 bulb.sendToggleCommand(toggleCommandListener);
             } else {
@@ -104,24 +94,9 @@ public class ToggleTileService extends TileService {
         }
     }
 
-    private void updateState() {
-        String homeSSID = new Settings(this, Settings.DEFAULT_NAME).getWiFiSSID();
-        if (homeSSID == null) {
-            state = State.NOT_SET;
-        } else {
-            Log.d("ToggleTileService", "SSID '" + homeSSID + "'");
-            switch (WiFiReceiver.getHomeState(this, homeSSID)) {
-                case HOME:
-                    state = State.HOME;
-                    break;
-                case NOT_HOME:
-                    state = State.NOT_HOME;
-                    break;
-                case UNKNOWN:
-                    break;
-            }
-        }
-        Log.d("ToggleTileService", "State " + state.name());
+    private void updateConnectedState() {
+        connected = WiFiReceiver.isConnected(this);
+        Log.d("ToggleTileService", "State " + (connected ? "connected" : "disconnected"));
         updateIcon();
     }
 
@@ -133,41 +108,27 @@ public class ToggleTileService extends TileService {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         Log.d("ToggleTileService", "Service start command");
-        updateState();
+        updateConnectedState();
         return START_STICKY;
     }
 
     @Override
     public void onStartListening() {
         super.onStartListening();
-        updateState();
+        updateConnectedState();
     }
 
     @Override
     public void onTileAdded() {
         super.onTileAdded();
-        updateState();
+        updateConnectedState();
     }
 
     @Override
     public void onClick() {
         super.onClick();
-        switch (state) {
-            case HOME:
-                Log.d("ToggleTileService", "Toggle requested");
-                toggle();
-                break;
-            case NOT_HOME: {
-                Log.d("ToggleTileService", "Click ignored");
-                final String homeSSID = new Settings(this, Settings.DEFAULT_NAME).getWiFiSSID();
-                final String text = String.format(getString(R.string.tile_toast_not_home), homeSSID);
-                Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
-            }
-            break;
-            case NOT_SET:
-                Log.d("ToggleTileService", "Redirected to settings activity");
-                startActivityAndCollapse(new Intent(this, SettingsActivity.class));
-                break;
+        if (connected) {
+            toggle();
         }
     }
 

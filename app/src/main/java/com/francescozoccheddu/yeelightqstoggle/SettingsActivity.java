@@ -2,7 +2,6 @@ package com.francescozoccheddu.yeelightqstoggle;
 
 import android.content.Context;
 import android.net.wifi.WifiConfiguration;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.design.widget.TextInputLayout;
@@ -13,26 +12,18 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 public class SettingsActivity extends AppCompatActivity {
 
+    private CheckBox cb_WiFiStatic;
     private CheckBox cb_BulbStatic;
     private AutoCompleteTextView actvWiFiSSID;
     private AutoCompleteTextView actvBulbAddress;
-    private TextView tvBulbDynamicInfo;
     private TextInputLayout tilWiFiSSID;
     private TextInputLayout tilBulbAddress;
 
@@ -47,31 +38,19 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
+        cb_WiFiStatic = findViewById(R.id.sets_cb_wifi_static);
         cb_BulbStatic = findViewById(R.id.sets_cb_bulb_static);
         actvWiFiSSID = findViewById(R.id.sets_actv_wifi_ssid);
         actvBulbAddress = findViewById(R.id.sets_actv_bulb_address);
-        tvBulbDynamicInfo = findViewById(R.id.sets_tv_bulb_dynamic_info);
         tilBulbAddress = findViewById(R.id.sets_til_bulb_address);
         tilWiFiSSID = findViewById(R.id.sets_til_wifi_ssid);
 
-        settings = new Settings(this, Settings.DEFAULT_NAME);
-        {
-            actvWiFiSSID.setText(settings.getWiFiSSID());
-            Bulb bulb = settings.getStaticBulb();
-            cb_BulbStatic.setChecked(bulb != null);
-            if (bulb != null) {
-                actvBulbAddress.setText(bulb.getAddress());
-            }
-            tvBulbDynamicInfo.setVisibility(cb_BulbStatic.isChecked() ? View.GONE : View.VISIBLE);
-            tilBulbAddress.setVisibility(cb_BulbStatic.isChecked() ? View.VISIBLE : View.GONE);
-        }
-
-        cb_BulbStatic.setOnCheckedChangeListener((view, isChecked) -> {
-            tvBulbDynamicInfo.setVisibility(isChecked ? View.GONE : View.VISIBLE);
-            tilBulbAddress.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        cb_WiFiStatic.setOnCheckedChangeListener((view, isChecked) -> {
             if (isChecked) {
-                validateBulbAddress(actvBulbAddress.getText().toString(), true);
+                actvWiFiSSID.setText(null);
+                validateWiFiSSID(actvWiFiSSID.getText().toString(), true);
             }
+            tilWiFiSSID.setVisibility(isChecked ? View.VISIBLE : View.GONE);
         });
 
         validateWiFiSSID(actvWiFiSSID.getText().toString(), true);
@@ -104,7 +83,14 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
-        validateBulbAddress(actvBulbAddress.getText().toString(), true);
+        cb_BulbStatic.setOnCheckedChangeListener((view, isChecked) -> {
+            if (isChecked) {
+                actvBulbAddress.setText(null);
+                validateBulbAddress(actvBulbAddress.getText().toString(), true);
+            }
+            tilBulbAddress.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+        });
+
 
         bulbsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
         bulbSet = new HashSet<>();
@@ -139,6 +125,14 @@ public class SettingsActivity extends AppCompatActivity {
                 validateBulbAddress(s.toString(), false);
             }
         });
+
+        {
+            Settings settings = Settings.getGlobalSettings(this);
+            cb_WiFiStatic.setChecked(settings.isWiFiStatic());
+            cb_BulbStatic.setChecked(settings.isBulbStatic());
+            actvWiFiSSID.setText(settings.getWiFiSSID());
+            actvBulbAddress.setText(settings.getBulbAddress());
+        }
 
     }
 
@@ -175,7 +169,7 @@ public class SettingsActivity extends AppCompatActivity {
         return null;
     }
 
-    private static boolean isValidAddress(String address) {
+    private static boolean isValidBulbAddress(String address) {
         return Bulb.fromAddress(address) != null;
     }
 
@@ -186,7 +180,7 @@ public class SettingsActivity extends AppCompatActivity {
             } else {
                 tilBulbAddress.setError(getString(R.string.sets_bulb_address_error_empty));
             }
-        } else if (!isValidAddress(address)) {
+        } else if (!isValidBulbAddress(address)) {
             tilBulbAddress.setError(getString(R.string.sets_bulb_address_error_invalid));
         } else {
             tilBulbAddress.setError(null);
@@ -201,27 +195,27 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
+    private void saveSettings() {
+        Settings.Editor settings = Settings.getGlobalSettings(this).edit();
 
-        if (cb_BulbStatic.isChecked()) {
-            final Bulb bulb = Bulb.fromAddress(actvBulbAddress.getText().toString());
-            if (bulb != null) {
-                settings.setStaticBulb(bulb);
-            } else {
-                settings.setDynamicBulb();
-            }
-        } else {
-            settings.setDynamicBulb();
-        }
+        final String wifiSSID = actvWiFiSSID.getText().toString();
+        final String bulbAddress = actvBulbAddress.getText().toString();
 
-        settings.setWiFiSSID(actvWiFiSSID.getText().toString());
+        settings.setWiFiSSID(wifiSSID);
+        settings.setStaticWiFi(cb_WiFiStatic.isChecked() && !wifiSSID.isEmpty());
+        settings.setBulbAddress(bulbAddress);
+        settings.setStaticBulb(cb_BulbStatic.isChecked() && isValidBulbAddress(bulbAddress));
 
-        settings.save();
+        settings.apply();
 
         Log.d("SettingsActivity", "Settings saved");
 
         ToggleTileService.update(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveSettings();
     }
 }

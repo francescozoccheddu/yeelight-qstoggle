@@ -8,7 +8,7 @@ public final class SSIDUtils {
     private SSIDUtils() {}
 
     public static String getSSID(String rawSSID) {
-        if (rawSSID != null && rawSSID.startsWith("\"") && rawSSID.endsWith("\"")) {
+        if (rawSSID != null && !rawSSID.isEmpty() && rawSSID.startsWith("\"") && rawSSID.endsWith("\"")) {
             return rawSSID.substring(1, rawSSID.length() - 1);
         }
         return null;
