@@ -130,8 +130,6 @@ public final class Bulb {
         private static final int MSG_SOCKET_TIMEOUT = 3;
         private static final int MSG_INTERRUPTED = 4;
 
-        private static final int SOCKET_TIMEOUT = 10000;
-
         private static final String UDP_REQUEST_MESSAGE = "M-SEARCH * HTTP/1.1\r\n" +
                 "HOST:239.255.255.250:1982\r\n" +
                 "MAN:\"ssdp:discover\"\r\n" +
@@ -141,14 +139,14 @@ public final class Bulb {
         private static final String UDP_HOST = "239.255.255.250";
         private static final int UDP_PORT = 1982;
 
-        public Discoverer(int timeout) {
+        public Discoverer(final int timeout) {
             if (timeout < 1000 || timeout > 120000) {
                 throw new IllegalArgumentException("Timeout must be longer than 1 second and shorter than 2 minutes");
             }
 
             final Runnable runnable = () -> {
                 try (DatagramSocket socket = new DatagramSocket()) {
-                    socket.setSoTimeout(SOCKET_TIMEOUT);
+                    socket.setSoTimeout(timeout);
                     DatagramPacket dpSend = new DatagramPacket(UDP_REQUEST_MESSAGE.getBytes(), UDP_REQUEST_MESSAGE.getBytes().length, InetAddress.getByName(UDP_HOST), UDP_PORT);
                     socket.send(dpSend);
                     byte[] buffer = new byte[1024];

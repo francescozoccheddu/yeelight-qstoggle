@@ -22,7 +22,7 @@ public class ToggleTileService extends TileService {
         updateState();
     }
 
-    private State state;
+    private State state = State.NOT_HOME;
 
     private boolean toggling = false;
 
@@ -171,6 +171,12 @@ public class ToggleTileService extends TileService {
         Log.d("ToggleTileService", "Service start command");
         updateState();
         return START_STICKY;
+    }
+
+    @Override
+    public void onStartListening() {
+        super.onStartListening();
+        updateState();
     }
 
     public static void update(Context context) {
