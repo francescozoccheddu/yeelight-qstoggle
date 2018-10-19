@@ -6,8 +6,8 @@ android {
         applicationId "com.francescozoccheddu.yeelightqstoggle"
         minSdkVersion 24
         targetSdkVersion 28
-        versionCode 3
-        versionName "0.7"
+        versionCode 4
+        versionName "0.8"
     }
     buildTypes {
         release {
