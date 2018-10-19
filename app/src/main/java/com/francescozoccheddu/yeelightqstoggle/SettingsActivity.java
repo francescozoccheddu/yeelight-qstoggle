@@ -167,8 +167,10 @@ public class SettingsActivity extends AppCompatActivity {
         WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         if (wifiManager != null) {
             List<WifiConfiguration> wifis = wifiManager.getConfiguredNetworks();
-            String[] ssids = wifis.stream().map(SSIDUtils::getSSID).toArray(String[]::new);
-            return new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, ssids);
+            if (wifis != null) {
+                String[] ssids = wifis.stream().map(SSIDUtils::getSSID).toArray(String[]::new);
+                return new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, ssids);
+            }
         }
         return null;
     }
@@ -207,12 +209,10 @@ public class SettingsActivity extends AppCompatActivity {
             final Bulb bulb = Bulb.fromAddress(actvBulbAddress.getText().toString());
             if (bulb != null) {
                 settings.setStaticBulb(bulb);
-            }
-            else {
+            } else {
                 settings.setDynamicBulb();
             }
-        }
-        else {
+        } else {
             settings.setDynamicBulb();
         }
 
