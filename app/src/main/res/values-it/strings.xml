@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yeelight Quick Settings Toggle</string>
+    <string name="tile_label_ready">Inverti</string>
+    <string name="tile_label_pending">Inversione…</string>
+    <string name="tile_label_not_home">Disconnesso</string>
+    <string name="tile_label_not_set">Configurazione</string>
+    <string name="sets_bulb_address_hint">Indirizzo della lampadina</string>
+    <string name="sets_static_option">Usa indirizzo statico</string>
+    <string name="sets_wifi_ssid_hint">SSID della rete WiFi</string>
+    <string name="sets_bulb_address_error_empty">L\'indirizzo non può essere vuoto</string>
+    <string name="sets_bulb_address_error_invalid">Indirizzo invalido</string>
+    <string name="sets_wifi_ssid_error_empty">L\'SSID non può essere vuoto</string>
+    <string name="tile_toast_not_home">Non connesso a \'%s\'</string>
+    <string name="tile_toast_already_toggling">Comando in sospeso</string>
+    <string name="tile_toast_toggle_failed">Inversione fallita</string>
+    <string name="tile_label">Inverti</string>
+    <string name="sets_info_dynamic">La lampadina verrà rilevata automaticamente</string>
+</resources>
