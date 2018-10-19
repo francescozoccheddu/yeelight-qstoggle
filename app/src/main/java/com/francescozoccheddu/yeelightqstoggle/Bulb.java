@@ -1,17 +1,16 @@
 package com.francescozoccheddu.yeelightqstoggle;
 
-import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
 import java.io.BufferedOutputStream;
-import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
@@ -127,8 +126,6 @@ public final class Bulb {
         private static final int MSG_FOUND = 0;
         private static final int MSG_EXCEPTION = 1;
         private static final int MSG_STOPME = 2;
-        private static final int MSG_SOCKET_TIMEOUT = 3;
-        private static final int MSG_INTERRUPTED = 4;
 
         private static final String UDP_REQUEST_MESSAGE = "M-SEARCH * HTTP/1.1\r\n" +
                 "HOST:239.255.255.250:1982\r\n" +
@@ -138,20 +135,29 @@ public final class Bulb {
         private static final String UDP_ANNOUNCE_MESSAGE_HEADER = "NOTIFY * HTTP/1.1";
         private static final String UDP_HOST = "239.255.255.250";
         private static final int UDP_PORT = 1982;
+        private final DatagramSocket socket;
+
 
         public Discoverer(final int timeout) {
+
+            try {
+                socket = new DatagramSocket();
+            } catch (SocketException e) {
+                throw new UncheckedIOException(e);
+            }
+
             if (timeout < 1000 || timeout > 120000) {
                 throw new IllegalArgumentException("Timeout must be longer than 1 second and shorter than 2 minutes");
             }
 
             final Runnable runnable = () -> {
-                try (DatagramSocket socket = new DatagramSocket()) {
+                try {
                     socket.setSoTimeout(timeout);
                     DatagramPacket dpSend = new DatagramPacket(UDP_REQUEST_MESSAGE.getBytes(), UDP_REQUEST_MESSAGE.getBytes().length, InetAddress.getByName(UDP_HOST), UDP_PORT);
                     socket.send(dpSend);
                     byte[] buffer = new byte[1024];
                     DatagramPacket dpRecv = new DatagramPacket(buffer, buffer.length);
-                    while (!Thread.interrupted()) {
+                    while (true) {
                         socket.receive(dpRecv);
                         String message = new String(dpRecv.getData());
                         Bulb bulb = parseBulb(message);
@@ -162,26 +168,15 @@ public final class Bulb {
                             handler.sendMessage(msg);
                         }
                     }
-                    handler.sendEmptyMessage(MSG_INTERRUPTED);
-                } catch (SocketTimeoutException e) {
-                    handler.sendEmptyMessage(MSG_SOCKET_TIMEOUT);
-                } catch (IOException e) {
-                    final Message msg = new Message();
-                    msg.what = MSG_EXCEPTION;
-                    msg.obj = e;
-                    handler.sendMessage(msg);
+                } catch (Exception e) {
+                    handler.sendEmptyMessage(MSG_EXCEPTION);
                 }
             };
 
             thread = new Thread(runnable);
             thread.start();
 
-            {
-                final Message msg = new Message();
-                msg.obj = thread;
-                msg.what = MSG_STOPME;
-                handler.sendMessageDelayed(msg, timeout);
-            }
+            handler.sendEmptyMessageDelayed(MSG_STOPME, timeout);
         }
 
         private final Handler handler = new Handler(Looper.myLooper()) {
@@ -194,16 +189,10 @@ public final class Bulb {
                         onDiscover((Bulb) msg.obj);
                         break;
                     case MSG_EXCEPTION:
-                        onException((Exception) msg.obj);
+                        onInterrupted();
                         break;
                     case MSG_STOPME:
-                        stopSearch();
-                        break;
-                    case MSG_SOCKET_TIMEOUT:
-                        onSocketTimeout();
-                        break;
-                    case MSG_INTERRUPTED:
-                        onInterrupted();
+                        socket.close();
                         break;
                 }
             }
@@ -214,23 +203,21 @@ public final class Bulb {
         public void onDiscover(Bulb bulb) {
         }
 
-        public void onSocketTimeout() {
-        }
-
         public void onInterrupted() {
-        }
-
-        public void onException(Exception exception) {
         }
 
         public final void stopSearch() {
             if (isSearching()) {
-                thread.interrupt();
+                socket.close();
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                }
             }
         }
 
         public final boolean isSearching() {
-            return thread.isAlive() && !thread.isInterrupted();
+            return thread.isAlive();
         }
 
         private static Bulb parseBulb(String message) {

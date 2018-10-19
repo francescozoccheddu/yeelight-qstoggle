@@ -15,5 +15,6 @@
     <string name="tile_toast_not_home">Not connected to \'%s\'</string>
     <string name="tile_toast_already_toggling">Command pending</string>
     <string name="tile_toast_toggle_failed">Toggle failed</string>
+    <string name="tile_toast_discovery_failed">Bulb discovery failed</string>
     <string name="tile_label">Toggle Bulb</string>
 </resources>

@@ -16,12 +16,6 @@ public class ToggleTileService extends TileService {
         HOME, NOT_HOME, NOT_SET
     }
 
-    @Override
-    public void onTileAdded() {
-        super.onTileAdded();
-        updateState();
-    }
-
     private State state = State.NOT_HOME;
 
     private boolean toggling = false;
@@ -30,11 +24,16 @@ public class ToggleTileService extends TileService {
         @Override
         public void onCommandSent() {
             Log.d("ToggleTileService", "Toggle command sent");
+            toggling = false;
+            updateIcon();
         }
 
         @Override
         public void onSocketException(Exception exception) {
             Log.d("ToggleTileService", "Toggle command socket exception");
+            Toast.makeText(ToggleTileService.this, R.string.tile_toast_toggle_failed, Toast.LENGTH_SHORT).show();
+            toggling = false;
+            updateIcon();
         }
     };
 
@@ -74,27 +73,17 @@ public class ToggleTileService extends TileService {
                 bulb.sendToggleCommand(toggleCommandListener);
             } else {
                 Log.d("ToggleTileService", "Creating new discoverer");
-                Bulb.Discoverer discoverer = new Bulb.Discoverer(5000) {
+                new Bulb.Discoverer(5000) {
 
                     boolean done = false;
 
                     @Override
                     public void onDiscover(Bulb bulb) {
                         if (!done) {
-                            done = true;
                             Log.d("ToggleTileService", "Sending toggle command to dynamic bulb '" + bulb.getAddress() + "'");
+                            done = true;
                             bulb.sendToggleCommand(toggleCommandListener);
                             stopSearch();
-                        }
-                    }
-
-                    @Override
-                    public void onException(Exception exception) {
-                        Log.d("ToggleTileService", "Discoverer exception: " + exception.getMessage());
-                        toggling = false;
-                        updateIcon();
-                        if (!done) {
-                            Toast.makeText(ToggleTileService.this, R.string.tile_toast_toggle_failed, Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -102,45 +91,16 @@ public class ToggleTileService extends TileService {
                     public void onInterrupted() {
                         if (!done) {
                             Log.d("ToggleTileService", "Discoverer interrupted");
-                            Toast.makeText(ToggleTileService.this, R.string.tile_toast_toggle_failed, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ToggleTileService.this, R.string.tile_toast_discovery_failed, Toast.LENGTH_SHORT).show();
+                            toggling = false;
                         }
-                        toggling = false;
                         updateIcon();
                     }
 
-                    @Override
-                    public void onSocketTimeout() {
-                        Log.d("ToggleTileService", "Discoverer socket timeout");
-                        toggling = false;
-                        updateIcon();
-                        Toast.makeText(ToggleTileService.this, R.string.tile_toast_toggle_failed, Toast.LENGTH_SHORT).show();
-                    }
                 };
             }
         } else {
             Toast.makeText(this, R.string.tile_toast_already_toggling, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public void onClick() {
-        super.onClick();
-        switch (state) {
-            case HOME:
-                Log.d("ToggleTileService", "Toggle requested");
-                toggle();
-                break;
-            case NOT_HOME: {
-                Log.d("ToggleTileService", "Click ignored");
-                final String homeSSID = new Settings(this, Settings.DEFAULT_NAME).getWiFiSSID();
-                final String text = String.format(getString(R.string.tile_toast_not_home), homeSSID);
-                Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
-            }
-            break;
-            case NOT_SET:
-                Log.d("ToggleTileService", "Redirected to settings activity");
-                startActivityAndCollapse(new Intent(this, SettingsActivity.class));
-                break;
         }
     }
 
@@ -165,6 +125,10 @@ public class ToggleTileService extends TileService {
         updateIcon();
     }
 
+    public static void update(Context context) {
+        context.startService(new Intent(context, ToggleTileService.class));
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
@@ -179,7 +143,32 @@ public class ToggleTileService extends TileService {
         updateState();
     }
 
-    public static void update(Context context) {
-        context.startService(new Intent(context, ToggleTileService.class));
+    @Override
+    public void onTileAdded() {
+        super.onTileAdded();
+        updateState();
     }
+
+    @Override
+    public void onClick() {
+        super.onClick();
+        switch (state) {
+            case HOME:
+                Log.d("ToggleTileService", "Toggle requested");
+                toggle();
+                break;
+            case NOT_HOME: {
+                Log.d("ToggleTileService", "Click ignored");
+                final String homeSSID = new Settings(this, Settings.DEFAULT_NAME).getWiFiSSID();
+                final String text = String.format(getString(R.string.tile_toast_not_home), homeSSID);
+                Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+            }
+            break;
+            case NOT_SET:
+                Log.d("ToggleTileService", "Redirected to settings activity");
+                startActivityAndCollapse(new Intent(this, SettingsActivity.class));
+                break;
+        }
+    }
+
 }
