@@ -51,6 +51,8 @@ public final class Bulb {
     private static final int CMD_TOGGLE_MSG_SENT = 1;
     private static final int CMD_TOGGLE_MSG_EXCEPTION = 2;
 
+    private static final int SOCKET_TIMEOUT = 5000;
+
     public void sendToggleCommand(ToggleCommandListener commandListener) {
         final Handler handler = commandListener == null ? null : new Handler(Looper.myLooper()) {
 
@@ -71,6 +73,7 @@ public final class Bulb {
         final Runnable runnable = () -> {
             try (Socket socket = new Socket(inet, port)) {
                 socket.setKeepAlive(true);
+                socket.setSoTimeout(SOCKET_TIMEOUT);
                 BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
                 bufferedOutputStream.write(CMD_TOGGLE_TCP_MESSAGE.getBytes());
                 bufferedOutputStream.flush();
